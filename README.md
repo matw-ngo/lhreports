@@ -95,4 +95,4 @@ This project is licensed under the MIT License.
 
 ### Contact
 
-For any questions or suggestions, please contact [matw-ngo](trung.ngo@datanest.vn).
+For any questions or suggestions, please contact [matw-ngo](ngonhuthanhtrung1409@gmail.com).
