@@ -10,6 +10,7 @@ This project is a Node.js application that extracts URLs from a Next.js project 
 - Support for custom URL lists.
 - Generate Lighthouse reports in JSON and HTML formats.
 - Save extracted URLs to a file for review.
+- Generate a markdown summary of results.
 
 ## Installation
 
@@ -36,7 +37,8 @@ This project is a Node.js application that extracts URLs from a Next.js project 
 - `--pages-dir <dir>`: Directory of Next.js pages (default: `pages`)
 - `--save-urls <file>`: File to save extracted URLs (default: `urls.txt`)
 - `--custom-urls <file>`: File containing custom URLs
-
+- `--exclude-urls <file>`: File containing URL exclusion patterns (default: exclude-urls.txt)
+- `--markdown-file <file>`: File to save markdown table (default: summary.md)`
 ### Examples
 
 1. Extract URLs from the default `pages` directory and save them to `urls.txt`:
@@ -62,6 +64,8 @@ This project is a Node.js application that extracts URLs from a Next.js project 
 - `src/utils/reportGenerator.ts`: Utility to generate reports.
 - `src/utils/urlExtractor.ts`: Utility to extract URLs from the Next.js pages directory.
 - `src/utils/urlSaver.ts`: Utility to save URLs to a file.
+- `src/utils/markdownTable.ts`: Utility to generate a markdown table.
+- `src/utils/markdownSaver.ts`: Utility to save markdown to a file.
 - `src/index.ts`: Main entry point for the application.
 
 ### Configuration
@@ -85,6 +89,10 @@ DOMAIN=https://example.com
    - The application generates Lighthouse reports for each URL in JSON and/or HTML format, based on the specified options.
    - Reports are saved in the `reports` directory.
 
+3. **Generate Markdown Summary**:
+
+   - The application generates a markdown table summarizing the results.
+   - The markdown table is saved to the specified file.
 ### Contribution
 
 Feel free to submit issues and pull requests to contribute to the project.

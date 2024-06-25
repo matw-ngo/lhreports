@@ -1,48 +1,64 @@
 import { exec } from "child_process";
-import { promisify } from "util";
+import * as fs from "fs-extra";
 
-const execAsync = promisify(exec);
+const runCommand = (command: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(`Error: ${stderr}`);
+      } else {
+        resolve();
+      }
+    });
+  });
+};
+
+const parseLighthouseReport = (filePath: string): any => {
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+};
+
+const calculateAverage = (values: number[]): number => {
+  return values.reduce((a, b) => a + b, 0) / values.length;
+};
+
+const getAverageScores = (reports: any[]): any => {
+  const scores = {
+    performance: calculateAverage(
+      reports.map((report) => report.categories.performance.score)
+    ),
+    accessibility: calculateAverage(
+      reports.map((report) => report.categories.accessibility.score)
+    ),
+    bestPractices: calculateAverage(
+      reports.map((report) => report.categories["best-practices"].score)
+    ),
+    seo: calculateAverage(reports.map((report) => report.categories.seo.score)),
+  };
+  return scores;
+};
 
 export const runLighthouse = async (
   url: string,
-  outputPathJson?: string,
-  outputPathHtml?: string
-): Promise<void> => {
-  try {
-    const promises = [];
+  outputJsonPath: string,
+  outputHtmlPath: string,
+  maxWaitForLoad: number = 45000,
+  runs: number = 3
+): Promise<any> => {
+  const reports = [];
 
-    if (outputPathJson) {
-      const commandJson = `lighthouse ${url} --output=json --output-path=${outputPathJson}`;
-      promises.push(
-        execAsync(commandJson).then(({ stderr }) => {
-          if (stderr) {
-            console.error(`Error generating JSON report for ${url}:`, stderr);
-          } else {
-            console.log(
-              `JSON report generated for ${url} and saved to ${outputPathJson}`
-            );
-          }
-        })
-      );
-    }
+  for (let i = 0; i < runs; i++) {
+    const jsonOutputPath = outputJsonPath.replace(".json", `_${i}.json`);
+    const htmlOutputPath = outputHtmlPath.replace(".html", `_${i}.html`);
 
-    if (outputPathHtml) {
-      const commandHtml = `lighthouse ${url} --output=html --output-path=${outputPathHtml}`;
-      promises.push(
-        execAsync(commandHtml).then(({ stderr }) => {
-          if (stderr) {
-            console.error(`Error generating HTML report for ${url}:`, stderr);
-          } else {
-            console.log(
-              `HTML report generated for ${url} and saved to ${outputPathHtml}`
-            );
-          }
-        })
-      );
-    }
+    const jsonCommand = `lighthouse ${url} --output=json --output-path=${jsonOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless"`;
+    const htmlCommand = `lighthouse ${url} --output=html --output-path=${htmlOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless"`;
 
-    await Promise.all(promises);
-  } catch (error) {
-    console.error(`Failed to run Lighthouse for ${url}:`, error);
+    await runCommand(jsonCommand);
+    await runCommand(htmlCommand);
+
+    reports.push(parseLighthouseReport(jsonOutputPath));
   }
+
+  const averageScores = getAverageScores(reports);
+  return averageScores;
 };

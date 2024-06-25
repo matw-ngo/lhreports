@@ -18,12 +18,7 @@ const getFilesRecursively = (dir: string): string[] => {
 };
 
 const cleanInvalidParts = (url: string): string => {
-  const invalidParts = [
-    "/error",
-    "/page",
-    "/layout",
-    "/layout-mapping",
-  ];
+  const invalidParts = ["/error", "/page", "/layout", "/layout-mapping"];
   invalidParts.forEach((part) => {
     url = url.split(part).join("");
   });
@@ -32,6 +27,10 @@ const cleanInvalidParts = (url: string): string => {
 
 const isValidUrl = (url: string, excludePatterns: string[]): boolean => {
   return !excludePatterns.some((pattern) => url.includes(pattern));
+};
+
+const ensureTrailingSlash = (url: string): string => {
+  return url.endsWith("/") ? url : `${url}/`;
 };
 
 const extractUrlsFromNextJsPages = (
@@ -51,12 +50,12 @@ const extractUrlsFromNextJsPages = (
       let url = file.replace(pagesDir, "");
       url = url.replace(/\/index\.(tsx|jsx|js|ts)$/, "/");
       url = url.replace(/\.(tsx|jsx|js|ts)$/, "");
-      url = url.replace(/\/$/, "");
       return url || "/";
     })
     .map((url) => `${config.domain}${cleanInvalidParts(url)}`)
+    .map((url) => ensureTrailingSlash(url))
     .filter((url) => isValidUrl(url, excludePatterns))
-    .filter((url) => url !== `${config.domain}`);
+    .filter((url) => url !== `${config.domain}/`);
 
   const uniqueUrls = Array.from(new Set(urls));
   return uniqueUrls;
@@ -66,5 +65,10 @@ export const getNextJsUrls = (
   pagesDir: string,
   excludePatterns: string[]
 ): string[] => {
-  return extractUrlsFromNextJsPages(pagesDir, excludePatterns);
+  const urls = extractUrlsFromNextJsPages(pagesDir, excludePatterns);
+  // Always include the homepage
+  if (!urls.includes(config.domain + "/")) {
+    urls.unshift(config.domain + "/");
+  }
+  return urls;
 };
