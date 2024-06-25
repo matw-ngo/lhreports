@@ -13,14 +13,14 @@ program
   .option("--json", "Generate JSON reports", false)
   .option("--html", "Generate HTML reports", true)
   .option("--pages-dir <dir>", "Directory of Next.js pages", "pages")
-  .option("--save-urls <file>", "File to save extracted URLs", "urls.txt")
+  .option("--save-urls <file>", "File to save extracted URLs", "output/urls.txt")
   .option("--custom-urls <file>", "File containing custom URLs")
   .option(
     "--exclude-urls <file>",
     "File containing URL exclusion patterns",
     "exclude-urls.txt"
   )
-  .option("--markdown-file <file>", "File to save markdown table", "summary.md")
+  .option("--markdown-file <file>", "File to save markdown table", "output/summary.md")
   .option(
     "--chunk-size <number>",
     "Number of URLs to process in parallel",
