@@ -25,8 +25,6 @@ export const generateMarkdownTable = (scores: PageScore[]): string => {
     .join("\n");
 
   return `
-## Summary of Results
-
 ${tableHeader}
 ${tableDivider}
 ${tableRows}

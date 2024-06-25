@@ -63,6 +63,10 @@ const readUrlsFromFile = async (filePath: string): Promise<string[]> => {
     .filter((url) => url.length > 0);
 };
 
+const formatDate = (date: Date): string => {
+  return date.toISOString();
+};
+
 const main = async () => {
   try {
     const excludePatterns = await readUrlsFromFile(excludeUrlsFile);
@@ -93,6 +97,7 @@ const main = async () => {
     );
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
+    const generatedAt = formatDate(new Date());
 
     // Generate markdown table and save to file
     const pages = scores.map((score) => ({
@@ -104,7 +109,7 @@ const main = async () => {
     }));
     const markdownTable = generateMarkdownTable(pages);
     saveMarkdownToFile(
-      `## Summary of Results\n\nGenerated in ${duration} seconds\n\n${markdownTable}`,
+      `## Summary of Results\n\nGenerated at: ${generatedAt}\n\nGenerated in ${duration} seconds\n\n${markdownTable}`,
       markdownFile
     );
 
