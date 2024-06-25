@@ -130,5 +130,4 @@ dist
 .pnp.*
 
 reports/*
-exclude-urls.txt
 output/*

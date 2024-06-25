@@ -13,14 +13,22 @@ program
   .option("--json", "Generate JSON reports", false)
   .option("--html", "Generate HTML reports", true)
   .option("--pages-dir <dir>", "Directory of Next.js pages", "pages")
-  .option("--save-urls <file>", "File to save extracted URLs", "output/urls.txt")
+  .option(
+    "--save-urls <file>",
+    "File to save extracted URLs",
+    "output/urls.txt"
+  )
   .option("--custom-urls <file>", "File containing custom URLs")
   .option(
     "--exclude-urls <file>",
     "File containing URL exclusion patterns",
-    "exclude-urls.txt"
+    "config/exclude-urls.txt"
   )
-  .option("--markdown-file <file>", "File to save markdown table", "output/summary.md")
+  .option(
+    "--markdown-file <file>",
+    "File to save markdown table",
+    "output/summary.md"
+  )
   .option(
     "--chunk-size <number>",
     "Number of URLs to process in parallel",
@@ -64,11 +72,24 @@ const readUrlsFromFile = async (filePath: string): Promise<string[]> => {
 };
 
 const formatDate = (date: Date): string => {
-  return date.toISOString();
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "Asia/Ho_Chi_Minh",
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    timeZoneName: "short",
+  };
+  return new Intl.DateTimeFormat("en-US", options).format(date);
 };
+
 
 const main = async () => {
   try {
+    console.log("Starting URL extraction...");
     const excludePatterns = await readUrlsFromFile(excludeUrlsFile);
 
     let urls: string[];
@@ -76,15 +97,17 @@ const main = async () => {
     if (options.customUrls) {
       const customUrlsFile = path.resolve(__dirname, "../", options.customUrls);
       urls = await readUrlsFromFile(customUrlsFile);
+      console.log(`Custom URLs loaded from ${customUrlsFile}`);
     } else {
       urls = getNextJsUrls(pagesDir, excludePatterns);
       saveUrlsToFile(urls, urlsFile);
       console.log(
-        `Please check the URLs in ${urlsFile} before generating reports.`
+        `URLs extracted and saved to ${urlsFile}. Please check the URLs before generating reports.`
       );
     }
 
     // Generate reports and get scores
+    console.log("Starting Lighthouse report generation...");
     const startTime = Date.now();
     const scores = await generateReports(
       urls,
@@ -100,6 +123,7 @@ const main = async () => {
     const generatedAt = formatDate(new Date());
 
     // Generate markdown table and save to file
+    console.log("Generating markdown summary...");
     const pages = scores.map((score) => ({
       page: score.page.replace(config.domain, ""),
       performance: score.performance,
