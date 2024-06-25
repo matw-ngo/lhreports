@@ -42,23 +42,53 @@ export const runLighthouse = async (
   outputJsonPath: string,
   outputHtmlPath: string,
   maxWaitForLoad: number = 45000,
-  runs: number = 3
-): Promise<any> => {
+  runs: number = 3,
+  preset: string = "mobile"
+): Promise<{ averageScores: any; details: any[] }> => {
   const reports = [];
+  const details = [];
 
   for (let i = 0; i < runs; i++) {
     const jsonOutputPath = outputJsonPath.replace(".json", `_${i}.json`);
     const htmlOutputPath = outputHtmlPath.replace(".html", `_${i}.html`);
+    let jsonCommand = "";
+    let htmlCommand = "";
 
-    const jsonCommand = `lighthouse ${url} --output=json --output-path=${jsonOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless"`;
-    const htmlCommand = `lighthouse ${url} --output=html --output-path=${htmlOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless"`;
+    if (preset === "mobile") {
+      jsonCommand = `lighthouse ${url} --output=json --output-path=${jsonOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless" `;
+      htmlCommand = `lighthouse ${url} --output=html --output-path=${htmlOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless" `;
+    } else {
+      jsonCommand = `lighthouse ${url} --output=json --output-path=${jsonOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless" --preset=${preset}`;
+      htmlCommand = `lighthouse ${url} --output=html --output-path=${htmlOutputPath} --max-wait-for-load=${maxWaitForLoad} --chrome-flags="--headless" --preset=${preset}`;
+    }
 
     await runCommand(jsonCommand);
     await runCommand(htmlCommand);
 
-    reports.push(parseLighthouseReport(jsonOutputPath));
+    const report = parseLighthouseReport(jsonOutputPath);
+    reports.push(report);
+    details.push({
+      runIndex: i + 1,
+      finalUrl: report.finalUrl,
+      fetchTime: report.fetchTime,
+      environment: {
+        formFactor: report.configSettings.formFactor,
+        throttlingMethod: report.configSettings.throttlingMethod,
+        chromiumVersion: report.environment.hostUserAgent.match(
+          /HeadlessChrome\/([\d.]+)/
+        )[1],
+        cpuThrottling: `${report.configSettings.throttling.cpuSlowdownMultiplier}x slowdown (${report.configSettings.throttlingMethod})`,
+        screenEmulation: `${report.configSettings.screenEmulation.width}x${report.configSettings.screenEmulation.height}, DPR ${report.configSettings.screenEmulation.deviceScaleFactor}`,
+      },
+      scores: {
+        performance: report.categories.performance.score,
+        accessibility: report.categories.accessibility.score,
+        bestPractices: report.categories["best-practices"].score,
+        seo: report.categories.seo.score,
+      },
+    });
   }
 
   const averageScores = getAverageScores(reports);
-  return averageScores;
+  return { averageScores, details };
 };

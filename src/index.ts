@@ -43,6 +43,11 @@ program
     "--runs <number>",
     "Number of times to run Lighthouse for averaging",
     "3"
+  )
+  .option(
+    "--preset <device>",
+    "Device to emulate (mobile or desktop)",
+    "mobile"
   );
 
 program.parse(process.argv);
@@ -62,6 +67,7 @@ const markdownFile = path.resolve(__dirname, "../", options.markdownFile);
 const chunkSize = parseInt(options.chunkSize, 10);
 const maxWaitForLoad = parseInt(options.maxWaitForLoad, 10);
 const runs = parseInt(options.runs, 10);
+const preset = options.preset;
 
 const readUrlsFromFile = async (filePath: string): Promise<string[]> => {
   const data = await fs.readFile(filePath, "utf-8");
@@ -86,7 +92,6 @@ const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat("en-US", options).format(date);
 };
 
-
 const main = async () => {
   try {
     console.log("Starting URL extraction...");
@@ -109,14 +114,15 @@ const main = async () => {
     // Generate reports and get scores
     console.log("Starting Lighthouse report generation...");
     const startTime = Date.now();
-    const scores = await generateReports(
+    const { scores, details } = await generateReports(
       urls,
       reportsDir,
       options.json,
       options.html,
       chunkSize,
       maxWaitForLoad,
-      runs
+      runs,
+      preset
     );
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
@@ -124,7 +130,7 @@ const main = async () => {
 
     // Generate markdown table and save to file
     console.log("Generating markdown summary...");
-    const pages = scores.map((score) => ({
+    const pages = scores.map((score: any) => ({
       page: score.page.replace(config.domain, ""),
       performance: score.performance,
       accessibility: score.accessibility,
@@ -132,8 +138,25 @@ const main = async () => {
       seo: score.seo,
     }));
     const markdownTable = generateMarkdownTable(pages);
+
+    let detailsTable =
+      "\n\n## Detailed Run Information\n\n| Run | Page | Fetch Time | Performance | Accessibility | Best Practices | SEO | Device | Chromium Version | CPU Throttling | Screen Emulation |\n|-----|------|------------|-------------|---------------|----------------|-----|--------|--------------------|------------------|--------------------------|\n";
+    details.forEach((detail: any) => {
+      detailsTable += `| ${detail.runIndex} | ${detail.finalUrl} | ${
+        detail.fetchTime
+      } | ${Math.round(detail.scores.performance * 100)} | ${Math.round(
+        detail.scores.accessibility * 100
+      )} | ${Math.round(detail.scores.bestPractices * 100)} | ${Math.round(
+        detail.scores.seo * 100
+      )} | ${detail.environment.formFactor} | ${
+        detail.environment.chromiumVersion
+      } | ${detail.environment.cpuThrottling} | ${
+        detail.environment.screenEmulation
+      }\n`;
+    });
+
     saveMarkdownToFile(
-      `## Summary of Results\n\nGenerated at: ${generatedAt}\n\nGenerated in ${duration} seconds\n\n${markdownTable}`,
+      `## Summary of Results\n\nGenerated at: ${generatedAt}\n\nGenerated in ${duration} seconds\n\n${markdownTable}${detailsTable}`,
       markdownFile
     );
 

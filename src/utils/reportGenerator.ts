@@ -11,15 +11,22 @@ interface PageScore {
   seo: number;
 }
 
-const getScoresFromReport = (report: any): PageScore => {
-  return {
-    page: report.finalUrl,
-    performance: Math.round(report.categories.performance.score * 100),
-    accessibility: Math.round(report.categories.accessibility.score * 100),
-    bestPractices: Math.round(report.categories["best-practices"].score * 100),
-    seo: Math.round(report.categories.seo.score * 100),
+interface RunDetail {
+  runIndex: number;
+  finalUrl: string;
+  fetchTime: string;
+  environment: {
+    formFactor: string;
+    throttlingMethod: string;
+    chromiumVersion: string;
   };
-};
+  scores: {
+    performance: number;
+    accessibility: number;
+    bestPractices: number;
+    seo: number;
+  };
+}
 
 export const generateReports = async (
   urls: string[],
@@ -28,8 +35,9 @@ export const generateReports = async (
   outputHtml: boolean,
   chunkSize: number = 10,
   maxWaitForLoad: number = 45000,
-  runs: number = 3
-): Promise<PageScore[]> => {
+  runs: number = 3,
+  preset: string = "mobile"
+): Promise<{ scores: PageScore[]; details: RunDetail[] }> => {
   if (fs.existsSync(reportsDir)) {
     fs.rmdirSync(reportsDir, { recursive: true });
   }
@@ -38,6 +46,7 @@ export const generateReports = async (
 
   const chunks = chunkArray(urls, chunkSize);
   const scores: PageScore[] = [];
+  const details: RunDetail[] = [];
 
   for (const chunk of chunks) {
     const promises = chunk.map(async (url) => {
@@ -50,13 +59,15 @@ export const generateReports = async (
         : undefined;
 
       if (reportPathJson && reportPathHtml) {
-        const averageScores = await runLighthouse(
+        const { averageScores, details: runDetails } = await runLighthouse(
           url,
           reportPathJson,
           reportPathHtml,
           maxWaitForLoad,
-          runs
+          runs,
+          preset
         );
+        details.push(...runDetails);
         return {
           page: url,
           performance: Math.round(averageScores.performance * 100),
@@ -73,5 +84,5 @@ export const generateReports = async (
     scores.push(...(results.filter((score) => score !== null) as PageScore[]));
   }
 
-  return scores;
+  return { scores, details };
 };
